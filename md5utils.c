@@ -5,26 +5,9 @@
 #include <openssl/evp.h>
 
 #ifdef _WIN32
-#include <windows.h>
 #define EXPORT __declspec(dllexport)
 #else
 #define EXPORT
-#endif
-
-#ifdef _WIN32
-// Helper function to convert UTF-8 to wide character (UTF-16)
-wchar_t* utf8_to_wchar(const char* utf8_str) {
-    int len = MultiByteToWideChar(CP_UTF8, 0, utf8_str, -1, NULL, 0);
-    if (len == 0) {
-        return NULL; // Conversion failed
-    }
-    wchar_t* wide_str = (wchar_t*)malloc(len * sizeof(wchar_t));
-    if (!wide_str) {
-        return NULL; // Memory allocation failed
-    }
-    MultiByteToWideChar(CP_UTF8, 0, utf8_str, -1, wide_str, len);
-    return wide_str;
-}
 #endif
 
 EXPORT int calculate_md5_from_array(const char** filenames, int count, char* result_buffer) {
@@ -37,18 +20,7 @@ EXPORT int calculate_md5_from_array(const char** filenames, int count, char* res
     }
 
     for (int i = 0; i < count; ++i) {
-        FILE* file = NULL;
-
-#ifdef _WIN32
-        wchar_t* wide_filename = utf8_to_wchar(filenames[i]);
-        if (wide_filename) {
-            file = _wfopen(wide_filename, L"rb");
-            free(wide_filename);
-        }
-#else
-        file = fopen(filenames[i], "rb");
-#endif
-
+        FILE* file = fopen(filenames[i], "rb");
         if (!file) {
             EVP_MD_CTX_free(md_ctx);
             return -1; // File open error
@@ -84,7 +56,6 @@ EXPORT int calculate_md5_from_array(const char** filenames, int count, char* res
     EVP_MD_CTX_free(md_ctx);
     return 0;
 }
-
 
 
 // JNI适配层 使用 jint 作为返回类型
